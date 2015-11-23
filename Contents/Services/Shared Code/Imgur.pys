@@ -48,4 +48,4 @@ def IsFile(url):
         return '.' in url.split('/')[-1]
 
 def GetId(url):
-        return url.split('/')[-1].split('.')[0]
+        return url.split('?')[0].split('/')[-1].split('.')[0]

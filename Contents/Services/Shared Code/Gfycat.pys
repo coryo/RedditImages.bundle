@@ -6,7 +6,6 @@ def ApiRequest(endpoint):
 
 def GetMP4Url(id):
 
-        Log(id)
         data = ApiRequest("/%s"%id)
 
         url_mp4  = data['gfyItem']['mp4Url']
@@ -17,4 +16,4 @@ def GetMP4Url(id):
 
 def GetId(url):
 
-        return url.split('/')[-1].split('.')[0]
+        return url.split('?')[0].url.split('/')[-1].split('.')[0]
