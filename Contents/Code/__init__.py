@@ -14,20 +14,31 @@ PATHS = [
 
 SUPPORTED_IMAGE_HOSTS = ['imgur.com', 'gfycat.com']
 
-####################################################################################################
-# Utility
-####################################################################################################
-
 def ErrorMessage(error, message):
 
         return ObjectContainer(
                 header  = u'%s' % error,
                 message = u'%s' % message, 
         )
+        
+def UrlType(url):
 
-####################################################################################################
-# Main
-####################################################################################################                 
+        site = None
+        t = None
+        if 'imgur.com' in url:
+                site = 'imgur'
+                if '/a/' in url:
+                        t = 'album'
+                elif url.endswith('.gifv') or url.endswith('.webm') or url.endswith('.gif'):
+                        t = 'vid'
+                else:
+                        t = 'img'
+        elif 'gfycat.com' in url:
+                site = 'gfycat'
+                t = 'vid'
+
+        return (site, t)                
+            
 def Start():
 
         ObjectContainer.title1 = NAME
@@ -60,9 +71,6 @@ def MainMenu():
 
         return oc
 
-####################################################################################################
-# Search Management
-####################################################################################################
 @route(PLEX_PATH + '/listing')
 def Listing(url):
 
@@ -121,21 +129,3 @@ def Album(site, id):
                 return ImgurAPI.GetAlbum(id)
 
         return ObjectContainer()
-
-def UrlType(url):
-
-        site = None
-        t = None
-        if 'imgur.com' in url:
-                site = 'imgur'
-                if '/a/' in url:
-                        t = 'album'
-                elif url.endswith('.gifv') or url.endswith('.webm') or url.endswith('.gif'):
-                        t = 'vid'
-                else:
-                        t = 'img'
-        elif 'gfycat.com' in url:
-                site = 'gfycat'
-                t = 'vid'
-
-        return (site, t)        
