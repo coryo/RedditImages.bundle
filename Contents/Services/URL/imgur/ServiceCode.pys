@@ -39,10 +39,10 @@ def GetImage(url):
         if ImgurAPI.IsFile(url):
                 return Redirect(url)
         else:
-                img_url = ImgurAPI.GetImageUrl(ImgurAPI.GetId(url))
+                img_url = ImgurAPI.GetImageUrl(ImgurAPI.GetIdFromURL(url))
                 return Redirect(img_url)
 
 def GetVid(url):
 
-        vid_url = ImgurAPI.GetMP4Url(ImgurAPI.GetId(url))
+        vid_url = ImgurAPI.GetMP4Url(ImgurAPI.GetIdFromURL(url))
         return Redirect(vid_url)

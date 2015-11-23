@@ -1,7 +1,9 @@
 from DumbTools import DumbPrefs
 
-GfycatAPI = SharedCodeService.Gfycat
-ImgurAPI  = SharedCodeService.Imgur
+APIS = {
+        'imgur.com': SharedCodeService.Imgur,
+        'gfycat.com': SharedCodeService.Gfycat,
+}
 
 NAME       = 'RedditImages'
 PLEX_PATH  = '/photos/redditimages'
@@ -12,37 +14,17 @@ PATHS = [
         "/r/pics/hot",
 ]
 
-SUPPORTED_IMAGE_HOSTS = ['imgur.com', 'gfycat.com']
-
+####################################################################################################      
 def ErrorMessage(error, message):
-
         return ObjectContainer(
                 header  = u'%s' % error,
                 message = u'%s' % message, 
         )
         
-def UrlType(url):
-
-        site = None
-        t = None
-        if 'imgur.com' in url:
-                site = 'imgur'
-                if '/a/' in url:
-                        t = 'album'
-                elif url.endswith('.gifv') or url.endswith('.webm') or url.endswith('.gif'):
-                        t = 'vid'
-                else:
-                        t = 'img'
-        elif 'gfycat.com' in url:
-                site = 'gfycat'
-                t = 'vid'
-
-        return (site, t)     
-
 def UrlEncode(url, params=None):
-
         return '%s?%s' % (url, '&'.join(["%s=%s" % (k,v) for k,v in params.iteritems()])) if params else url           
-            
+
+####################################################################################################      
 def Start():
 
         ObjectContainer.title1 = NAME
@@ -51,6 +33,9 @@ def Start():
         if not 'paths' in Dict:
                 Dict['paths'] = PATHS
                 Dict.Save()
+
+        for name, api in APIS.iteritems():
+                Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)            
 
 @handler(PLEX_PATH, NAME)
 def MainMenu():       
@@ -75,7 +60,8 @@ def MainMenu():
 
         return oc
 
-@route(PLEX_PATH + '/listing', count=int)
+####################################################################################################      
+@route(PLEX_PATH + '/listing')
 def Listing(url, after=None):
 
         oc = ObjectContainer(content=ContainerContent.Mixed)
@@ -84,49 +70,20 @@ def Listing(url, after=None):
         if after:
                 params['after'] = after
 
-        data = JSON.ObjectFromURL(UrlEncode(url, params), cacheTime=0)
+        data = JSON.ObjectFromURL(UrlEncode(url, params), cacheTime=CACHE_1MINUTE)
 
         for item in data['data']['children']:
 
                 item_thumb = item['data']['thumbnail']
                 item_url   = item['data']['url']
                 item_title = item['data']['title']
-
-                item_type = UrlType(item_url)
                 
-                if item_type[0] == 'imgur':
-                        # Imgur specifics
-                        item_thumb = ImgurAPI.ThumbForUrl(item_url) if item_thumb == 'nsfw' else item_thumb
-                        if item_type[1] == 'album':
-                                oc.add(PhotoAlbumObject(
-                                        key = Callback(Album, site='imgur', id=ImgurAPI.GetId(item_url)),
-                                        rating_key = item_url,
-                                        title = u'[ia] %s' % item_title,
-                                        thumb = Resource.ContentsOfURLWithFallback(item_thumb)
-                                ))
-                        elif item_type[1] == 'vid' and Prefs['animated']:
-                                oc.add(VideoClipObject(
-                                        url = item_url,
-                                        title = u'[iv] %s' % item_title,
-                                        thumb = Resource.ContentsOfURLWithFallback(item_thumb)
-                                ))
-                        elif item_type[1] == 'img':
-                                oc.add(PhotoObject(
-                                        url = item_url,
-                                        title = u'[i] %s' % item_title,
-                                        thumb = Resource.ContentsOfURLWithFallback(item_thumb)
-                                ))
-                elif item_type[0] == 'gfycat':
-                        # Gfycat specifics
-                        if item_type[1] == 'vid' and Prefs['animated']:
-                                oc.add(VideoClipObject(
-                                        url = item_url,
-                                        title = u'[gfy] %s' % item_title,
-                                        thumb = Resource.ContentsOfURLWithFallback(item_thumb)
-                                ))
-                else:
-                        #support other image hosts
-                        pass
+                for api_name, api in APIS.iteritems():
+                        if api_name in item_url:
+                                obj = api.ListObject(item_url, item_title, item_thumb, allow_animated=bool(Prefs['animated']))
+                                break
+
+                if obj: oc.add(obj)
 
         if data['data']['after']:
                 oc.add(NextPageObject(
@@ -134,11 +91,3 @@ def Listing(url, after=None):
                 ))
 
         return oc
-
-@route(PLEX_PATH + '/album/{site}/{id}')
-def Album(site, id):
-
-        if site == 'imgur':
-                return ImgurAPI.GetAlbum(id)
-
-        return ObjectContainer()

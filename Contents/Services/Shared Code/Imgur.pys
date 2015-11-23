@@ -1,6 +1,42 @@
 API_BASE  = "https://api.imgur.com/3"
 CLIENT_ID = "c47fd9cf7e97928"
 
+def ListObject(url, title, thumb, allow_animated=True):
+
+        item_type = GetTypeFromURL(url)
+        thumb = GetThumbFromURL(url) if thumb == 'nsfw' else thumb
+        if item_type == 'album':
+                return PhotoAlbumObject(
+                        key = Callback(GetAlbum, url=GetIdFromURL(url)),
+                        rating_key = url,
+                        title = u'[ia] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+        elif item_type == 'vid' and allow_animated:
+                return VideoClipObject(
+                        url = url,
+                        title = u'[iv] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+        elif item_type == 'img':
+                return PhotoObject(
+                        url = url,
+                        title = u'[i] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+
+def GetAlbum(url):
+        oc = ObjectContainer()
+        data = ApiRequest("/album/%s/images" % url)
+        for item in data['data']:
+                oc.add(PhotoObject(
+                        url = item['link'],
+                        title = item['id'],
+                        thumb = Resource.ContentsOfURLWithFallback(GetThumbFromURL(item['link']))
+                ))
+
+        return oc                
+####################################################################################################
 def ApiRequest(endpoint):
         data = JSON.ObjectFromURL(API_BASE+endpoint, headers={"Authorization": "Client-ID %s"% CLIENT_ID})
         return data
@@ -13,31 +49,6 @@ def GetMP4Url(id):
         data = ApiRequest("/image/%s" % id)
         return data['data']['mp4']  
 
-def GetAlbum(id):
-        oc = ObjectContainer()
-        data = ApiRequest("/album/%s/images" % id)
-        for item in data['data']:
-                oc.add(PhotoObject(
-                        url = item['link'],
-                        title = item['id'],
-                        thumb = Resource.ContentsOfURLWithFallback(ThumbForUrl(item['link']))
-                ))
-
-        return oc
-
-def ThumbForUrl(url):
-        if IsFile(url):
-                x = url.split('.')
-                return '.'.join(x[:-1]) + 'b.' + x[-1]
-        elif IsAlbum(url):
-                data = ApiRequest("/album/%s" % GetId(url))
-                thumb = ThumbForUrl(data['data']['images'][0]['link'])
-                return thumb
-        else:
-                data = ApiRequest("/image/%s" % GetId(url))
-                thumb = ThumbForUrl(data['data']['link'])
-                return thumb
-
 def IsAlbum(url):
         return '/a/' in url
 
@@ -47,5 +58,26 @@ def IsVid(url):
 def IsFile(url):
         return '.' in url.split('/')[-1]
 
-def GetId(url):
+def GetThumbFromURL(url):
+        if IsFile(url):
+                x = url.split('.')
+                return '.'.join(x[:-1]) + 'b.' + x[-1]
+        elif IsAlbum(url):
+                data = ApiRequest("/album/%s" % GetIdFromURL(url))
+                thumb = GetThumbFromURL(data['data']['images'][0]['link'])
+                return thumb
+        else:
+                data = ApiRequest("/image/%s" % GetIdFromURL(url))
+                thumb = GetThumbFromURL(data['data']['link'])
+                return thumb
+
+def GetIdFromURL(url):
         return url.split('?')[0].split('/')[-1].split('.')[0]
+
+def GetTypeFromURL(url):
+        if IsAlbum(url):
+                return 'album'
+        elif IsVid(url):
+                return 'vid'
+        else:
+                return 'img'

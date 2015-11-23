@@ -1,19 +1,71 @@
 API_BASE = "http://gfycat.com/cajax/get"
+THUMB_URL = "http://thumbs.gfycat.com/{id}-thumb360.jpg"
 
+def ListObject(url, title, thumb, allow_animated=True):
+
+        if not allow_animated: return None
+
+        item_type = GetTypeFromURL(url)
+        if item_type == 'vid':
+                return VideoClipObject(
+                        url = url,
+                        title = u'[gfy] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+        elif item_type == 'album':
+                return DirectoryObject(
+                        key = Callback(GetAlbumFromURL, url=url),
+                        title = u'[gfya] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(GetAlbum(url))
+                )
+
+def GetAlbum(url):
+        data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
+        oc = ObjectContainer()
+        for item in data['publishedGfys']:
+                oc.add(GetVideo(item))
+        return oc
+
+####################################################################################################
 def ApiRequest(endpoint):
         data = JSON.ObjectFromURL(API_BASE + endpoint)
         return data
 
 def GetMP4Url(id):
-
         data = ApiRequest("/%s"%id)
-
         url_mp4  = data['gfyItem']['mp4Url']
         url_webm = data['gfyItem']['webmUrl']
         url_gif  = data['gfyItem']['gifUrl']
-
         return url_mp4
 
-def GetId(url):
+def GetVideo(gfyItem):
+        return VideoClipObject(
+                url = gfyItem['mp4Url'],
+                title = gfyItem['gfyName'],
+                thumb = Resource.ContentsOfURLWithFallback(THUMB_URL.format(id=gfyItem['gfyName']))
+        )
 
-        return url.split('?')[0].url.split('/')[-1].split('.')[0]
+def GetThumb(gfyItem):
+        return THUMB_URL.format(id=gfyItem['gfyName'])
+
+def IsAlbum(url):
+        return len(url.split('.com/')[-1].split('/')) == 2
+
+def GetIdFromURL(url):
+        return url.split('?')[0].split('/')[-1].split('.')[0]
+
+def GetAlbumParamsFromURL(url):
+        elements = url.split("?")[0].split('/')
+        return (elements[-2], elements[-1])
+
+def GetTypeFromURL(url):
+        if IsAlbum(url):
+                return 'album'
+        else:
+                return 'vid'
+
+def GetAlbumThumbFromURL(url):
+
+        data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
+        return GetThumb(data['publishedGfys'][0])
+

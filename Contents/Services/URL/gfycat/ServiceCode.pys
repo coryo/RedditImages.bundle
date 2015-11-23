@@ -2,7 +2,7 @@ import Gfycat as GfycatAPI
 
 def MetadataObjectForURL(url):
 
-        data = GfycatAPI.ApiRequest('/%s' % GfycatAPI.GetId(url))
+        data = GfycatAPI.ApiRequest('/%s' % GfycatAPI.GetIdFromURL(url))
 
         frames = int(data['gfyItem']['numFrames'])
         framerate = float(data['gfyItem']['frameRate'])
@@ -26,5 +26,5 @@ def MediaObjectsForURL(url):
 
 def GetVid(url, **kwargs):
 
-        vid_url = GfycatAPI.GetMP4Url(GfycatAPI.GetId(url))
+        vid_url = url if url.endswith('.mp4') else GfycatAPI.GetMP4Url(GfycatAPI.GetIdFromURL(url))
         return Redirect(vid_url)
