@@ -36,13 +36,10 @@ def MediaObjectsForURL(url):
 
 def GetImage(url):
 
-        if ImgurAPI.IsFile(url):
-                return Redirect(url)
-        else:
-                img_url = ImgurAPI.GetImageUrl(ImgurAPI.GetIdFromURL(url))
-                return Redirect(img_url)
+        img_url = url if ImgurAPI.IsFile(url) else ImgurAPI.GetImageUrl(ImgurAPI.GetIdFromURL(url))
+        return Redirect(img_url)
 
 def GetVid(url):
 
-        vid_url = ImgurAPI.GetMP4Url(ImgurAPI.GetIdFromURL(url))
+        vid_url = url if url.endswith('.mp4') else ImgurAPI.GetMP4Url(ImgurAPI.GetIdFromURL(url))
         return Redirect(vid_url)
