@@ -37,7 +37,11 @@ def UrlType(url):
                 site = 'gfycat'
                 t = 'vid'
 
-        return (site, t)                
+        return (site, t)     
+
+def UrlEncode(url, params=None):
+
+        return '%s?%s' % (url, '&'.join(["%s=%s" % (k,v) for k,v in params.iteritems()])) if params else url           
             
 def Start():
 
@@ -71,12 +75,16 @@ def MainMenu():
 
         return oc
 
-@route(PLEX_PATH + '/listing')
-def Listing(url):
+@route(PLEX_PATH + '/listing', count=int)
+def Listing(url, after=None):
 
         oc = ObjectContainer(content=ContainerContent.Mixed)
 
-        data = JSON.ObjectFromURL(url)
+        params = {}
+        if after:
+                params['after'] = after
+
+        data = JSON.ObjectFromURL(UrlEncode(url, params), cacheTime=0)
 
         for item in data['data']['children']:
 
@@ -119,6 +127,11 @@ def Listing(url):
                 else:
                         #support other image hosts
                         pass
+
+        if data['data']['after']:
+                oc.add(NextPageObject(
+                        key = Callback(Listing, url=url, after=data['data']['after'])
+                ))
 
         return oc
 
