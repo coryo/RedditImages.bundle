@@ -1,0 +1,8 @@
+[
+        {
+                "id":           "animated",
+                "label":        "Enable Animated",
+                "type":         "bool",
+                "default":      "true",
+        },
+]

@@ -1,0 +1,30 @@
+import Gfycat as GfycatAPI
+
+def MetadataObjectForURL(url):
+
+        data = GfycatAPI.ApiRequest('/%s' % GfycatAPI.GetId(url))
+
+        frames = int(data['gfyItem']['numFrames'])
+        framerate = float(data['gfyItem']['frameRate'])
+
+        duration = (frames / framerate) * 1000
+        return VideoClipObject(
+                title = "na",
+                summary = "na",
+                duration = int(duration),
+        )
+
+def MediaObjectsForURL(url):
+
+        return [
+                MediaObject(
+                        container = 'mp4',
+                        video_codec = VideoCodec.H264,
+                        parts = [PartObject(key=Callback(GetVid, url = url, ext='mp4'))]
+                )
+        ]
+
+def GetVid(url, **kwargs):
+
+        vid_url = GfycatAPI.GetMP4Url(GfycatAPI.GetId(url))
+        return Redirect(vid_url)

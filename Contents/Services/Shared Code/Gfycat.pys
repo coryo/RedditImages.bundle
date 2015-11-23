@@ -1,0 +1,20 @@
+API_BASE = "http://gfycat.com/cajax/get"
+
+def ApiRequest(endpoint):
+        data = JSON.ObjectFromURL(API_BASE + endpoint)
+        return data
+
+def GetMP4Url(id):
+
+        Log(id)
+        data = ApiRequest("/%s"%id)
+
+        url_mp4  = data['gfyItem']['mp4Url']
+        url_webm = data['gfyItem']['webmUrl']
+        url_gif  = data['gfyItem']['gifUrl']
+
+        return url_mp4
+
+def GetId(url):
+
+        return url.split('/')[-1].split('.')[0]

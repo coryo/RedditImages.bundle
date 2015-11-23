@@ -1,0 +1,48 @@
+import Imgur as ImgurAPI
+
+def MetadataObjectForURL(url):
+
+        if ImgurAPI.IsVid(url):
+                return VideoClipObject(
+                        title = "na",
+                        summary = "na",
+                )
+        else:
+                return PhotoObject(
+                        title = "na",
+                        summary = "na",
+                )
+
+def MediaObjectsForURL(url):
+
+        if ImgurAPI.IsVid(url):
+                return [
+                        MediaObject(
+                                container = 'mp4',
+                                video_codec = VideoCodec.H264,
+                                parts = [
+                                        PartObject(
+                                                key=Callback(GetVid, url = url)
+                                        )
+                                ]
+                        )
+                ]
+        else:
+                return [
+                        MediaObject(
+                                parts = [PartObject(key=Callback(GetImage, url = url))]
+                        )
+                ]
+
+def GetImage(url):
+
+        if ImgurAPI.IsFile(url):
+                return Redirect(url)
+        else:
+                img_url = ImgurAPI.GetImageUrl(ImgurAPI.GetId(url))
+                return Redirect(img_url)
+
+def GetVid(url):
+
+        vid_url = ImgurAPI.GetMP4Url(ImgurAPI.GetId(url))
+        return Redirect(vid_url)
