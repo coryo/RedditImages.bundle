@@ -174,16 +174,8 @@ def Listing(path, category='hot', after=None):
                 params['after'] = after
 
         if category in SORTABLE:
-                ptitle = "Edit Prefs: limit=%s, time=%s, animated=%s" % (Prefs['limit'], Prefs['time'], Prefs['animated'])
                 params['t']    = Prefs['time']
                 params['sort'] = category
-        else:
-                ptitle = "Edit Prefs: limit=%s, animated=%s" % (Prefs['limit'], Prefs['animated'])
-
-        DumbPrefs(PLEX_PATH, oc,
-                title = ptitle,
-                thumb = R(ICONS['prefs'])
-        )
 
         data = JSON.ObjectFromURL(url = UrlEncode(REDDIT_API.format(endpoint="%s/%s" % (path, category)), params),
                                   cacheTime = CACHE_1MINUTE*5)
@@ -203,7 +195,7 @@ def Listing(path, category='hot', after=None):
 
                 if obj: oc.add(obj)
 
-        if data['data']['after']:
+        if data['data']['after'] and Client.Platform not in ['Plex Home Theater', 'OpenPHT']:
                 oc.add(NextPageObject(
                         key = Callback(Listing, path=path, category=category, after=data['data']['after'])
                 ))
