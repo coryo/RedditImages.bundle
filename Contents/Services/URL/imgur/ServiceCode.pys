@@ -2,21 +2,24 @@ import Imgur as ImgurAPI
 
 def MetadataObjectForURL(url):
 
+        data = ImgurAPI.ApiRequest("/image/%s" %ImgurAPI.GetIdFromURL(url))
+
+        title = data['data']['title']
+        desc  = data['data']['description']
         if ImgurAPI.IsVid(url):
                 return VideoClipObject(
-                        title   = "na",
-                        summary = "na",
+                        title   = u'%s' % title,
+                        summary = u'%s' % desc,
                         thumb   = Resource.ContentsOfURLWithFallback(ImgurAPI.GetThumbFromURL(url)),
                 )
         else:
                 return PhotoObject(
-                        title   = "na",
-                        summary = "na",
+                        title   = u'%s' % title,
+                        summary = u'%s' % desc,
                         thumb   = Resource.ContentsOfURLWithFallback(ImgurAPI.GetThumbFromURL(url)),
                 )
 
 def MediaObjectsForURL(url):
-
 
         if ImgurAPI.IsVid(url):
                 return [

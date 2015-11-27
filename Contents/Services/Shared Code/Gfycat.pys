@@ -6,22 +6,22 @@ def ListObject(url, title, thumb, allow_animated=True):
 
         if not allow_animated: return None
 
-        item_type = GetTypeFromURL(url)
-        if item_type == 'vid':
+        if IsAlbum(url):
+                return DirectoryObject(
+                        key = Callback(GetAlbum, url=url),
+                        title = u'[gfya] %s' % title,
+                        thumb = Resource.ContentsOfURLWithFallback(GetThumbFromAlbumURL(url))
+                )        
+        else:
                 return VideoClipObject(
                         url = url,
                         title = u'[gfy] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
-        elif item_type == 'album':
-                return DirectoryObject(
-                        key = Callback(GetAlbum, url=url),
-                        title = u'[gfya] %s' % title,
-                        thumb = Resource.ContentsOfURLWithFallback(GetThumbFromAlbumURL(url))
-                )
 
 def GetAlbum(url):
         data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
+        
         oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
         for item in data['publishedGfys']:
                 oc.add(GetVideo(item))
@@ -29,7 +29,7 @@ def GetAlbum(url):
 
 ####################################################################################################
 def ApiRequest(endpoint):
-        data = JSON.ObjectFromURL(API_BASE + endpoint)
+        data = JSON.ObjectFromURL(API_BASE + endpoint, cacheTime=CACHE_1MONTH)
         return data
 
 def GetMP4Url(id):
@@ -59,13 +59,6 @@ def GetAlbumParamsFromURL(url):
         elements = url.split("?")[0].split('/')
         return (elements[-2], elements[-1])
 
-def GetTypeFromURL(url):
-        if IsAlbum(url):
-                return 'album'
-        else:
-                return 'vid'
-
 def GetThumbFromAlbumURL(url):
-
         data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
         return GetThumb(data['publishedGfys'][0])

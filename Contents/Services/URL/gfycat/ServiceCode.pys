@@ -8,8 +8,8 @@ def MetadataObjectForURL(url):
         framerate = int(data['gfyItem']['frameRate'])
 
         return VideoClipObject(
-                title    = "na",
-                summary  = "na",
+                title    = u'%s' % data['gfyItem']['gfyName'],
+                summary  = u'%s' % data['gfyItem']['redditIdText'] if data['gfyItem']['redditIdText'] else "na",
                 duration = int((frames / float(framerate)) * 1000),
                 thumb    = Resource.ContentsOfURLWithFallback(GfycatAPI.GetThumb(data['gfyItem']))
         )

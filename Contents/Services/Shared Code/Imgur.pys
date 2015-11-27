@@ -4,22 +4,24 @@ CLIENT_ID = "c47fd9cf7e97928"
 
 def ListObject(url, title, thumb, allow_animated=True):
 
-        item_type = GetTypeFromURL(url)
+        if not allow_animated: return None
+
         thumb = GetThumbFromURL(url) if thumb == 'nsfw' else thumb
-        if item_type == 'album':
+
+        if IsAlbum(url):
                 return PhotoAlbumObject(
                         key = Callback(GetAlbum, url=GetIdFromURL(url)),
                         rating_key = url,
                         title = u'[ia] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
-        elif item_type == 'vid' and allow_animated:
+        elif IsVid(url):
                 return VideoClipObject(
                         url = url,
                         title = u'[iv] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
-        elif item_type == 'img':
+        else:
                 return PhotoObject(
                         url = url,
                         title = u'[i] %s' % title,
@@ -27,19 +29,20 @@ def ListObject(url, title, thumb, allow_animated=True):
                 )
 
 def GetAlbum(url):
-        oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
         data = ApiRequest("/album/%s/images" % url)
+
+        oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
         for item in data['data']:
                 oc.add(PhotoObject(
                         url = item['link'],
                         title = item['id'],
                         thumb = Resource.ContentsOfURLWithFallback(GetThumbFromURL(item['link']))
                 ))
+        return oc
 
-        return oc                
 ####################################################################################################
 def ApiRequest(endpoint):
-        data = JSON.ObjectFromURL(API_BASE+endpoint, headers={"Authorization": "Client-ID %s"% CLIENT_ID})
+        data = JSON.ObjectFromURL(API_BASE+endpoint, headers={"Authorization": "Client-ID %s"% CLIENT_ID}, cacheTime=CACHE_1MONTH)
         return data
 
 def GetImageUrl(id):
@@ -54,7 +57,7 @@ def IsAlbum(url):
         return '/a/' in url
 
 def IsVid(url):
-        return url.endswith('gif') or url.endswith('gifv')
+        return url.endswith('gif') or url.endswith('gifv') or url.endswith('webm')
 
 def IsFile(url):
         return '.' in url.split('/')[-1]
@@ -62,7 +65,7 @@ def IsFile(url):
 def GetThumbFromURL(url):
         if IsFile(url):
                 x = url.split('.')
-                return '.'.join(x[:-1]) + 'b.' + x[-1]
+                return '.'.join(x[:-1]) + 'b.jpg'
         elif IsAlbum(url):
                 data = ApiRequest("/album/%s" % GetIdFromURL(url))
                 thumb = GetThumbFromURL(data['data']['images'][0]['link'])
@@ -74,11 +77,3 @@ def GetThumbFromURL(url):
 
 def GetIdFromURL(url):
         return url.split('?')[0].split('/')[-1].split('.')[0]
-
-def GetTypeFromURL(url):
-        if IsAlbum(url):
-                return 'album'
-        elif IsVid(url):
-                return 'vid'
-        else:
-                return 'img'
