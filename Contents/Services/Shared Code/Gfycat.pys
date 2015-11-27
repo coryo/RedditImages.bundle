@@ -16,10 +16,10 @@ def ListObject(url, title, thumb, allow_animated=True):
                 return DirectoryObject(
                         key = Callback(GetAlbumFromURL, url=url),
                         title = u'[gfya] %s' % title,
-                        thumb = Resource.ContentsOfURLWithFallback(GetAlbum(url))
+                        thumb = Resource.ContentsOfURLWithFallback(GetThumbFromAlbumURL(url))
                 )
 
-def GetAlbum(url):
+def GetAlbumFromURL(url):
         data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
         oc = ObjectContainer()
         for item in data['publishedGfys']:
@@ -64,8 +64,7 @@ def GetTypeFromURL(url):
         else:
                 return 'vid'
 
-def GetAlbumThumbFromURL(url):
+def GetThumbFromAlbumURL(url):
 
         data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
         return GetThumb(data['publishedGfys'][0])
-
