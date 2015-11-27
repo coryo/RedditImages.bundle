@@ -9,7 +9,10 @@ APIS = {
 NAME       = 'RedditImages'
 PLEX_PATH  = '/photos/redditimages'
 
-ICON  = "icon-default.png"
+ICONS = {
+        'default': 'icon-default.png',
+        'prefs': 'icon-settings.png'
+}
 
 DEFAULT_PATHS = ["/r/pics", "/r/gifs"]
 
@@ -18,20 +21,37 @@ SORTABLE   = ['top', 'controversial']
 
 ####################################################################################################      
 def ErrorMessage(error, message):
+
         return ObjectContainer(
                 header  = u'%s' % error,
                 message = u'%s' % message, 
         )
         
 def UrlEncode(url, params=None):
+
         return '%s?%s' % (url, '&'.join(["%s=%s" % (k,v) for k,v in params.iteritems()])) if params else url           
 
-def FixUrl(url):
-        if not url.startswith('/'):
-                url = '/'+url
-        if url.endswith('/'):
-                url = url[:-1]
-        return url
+def FixPath(path):
+
+        path = path.split('reddit.com')[-1]
+
+        if not path.startswith('/'):
+                path = '/'+path
+
+        if path.endswith('/'):
+                path = path[:-1]
+
+        return path
+
+def ImportPathsFromFile(file="paths.txt"):
+
+        if Data.Exists(file):
+                data = Data.Load(file)
+                for line in data.splitlines():
+                        AddPath(FixPath(line), silent=True)
+                Data.Save("%s.bk" % file, data)
+                Data.Remove(file)
+
 ####################################################################################################      
 def Start():
 
@@ -46,14 +66,16 @@ def Start():
         for name, api in APIS.iteritems():
                 Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)
 
-@handler(PLEX_PATH, NAME)
+        ImportPathsFromFile("paths.txt")
+
+@handler(PLEX_PATH, NAME, thumb=ICONS['default'])
 def MainMenu():       
 
-        oc = ObjectContainer(no_cache=True)
+        oc = ObjectContainer(title2=NAME, no_cache=True)
 
         for item in Dict['paths']:
                 oc.add(DirectoryObject(
-                        key   = Callback(Categories, url=item),
+                        key   = Callback(Categories, path=item),
                         title = u'%s' % item,
                 ))
 
@@ -68,7 +90,8 @@ def MainMenu():
 
         # preferences
         if Client.Product in DumbPrefs.clients:
-                DumbPrefs(PLEX_PATH, oc)
+                DumbPrefs(PLEX_PATH, oc,
+                        thumb = R(ICONS['prefs']))
         else:
                 oc.add(PrefsObject(
                         title   = L('preferences'),
@@ -81,7 +104,7 @@ def MainMenu():
 @route(PLEX_PATH + '/paths/list')
 def ListPaths(action='rem'):
 
-        oc = ObjectContainer()
+        oc = ObjectContainer(title2=u'%s %s' % (L('Paths'), L(action)))
 
         for path in Dict['paths']:
                 do = DirectoryObject()
@@ -93,51 +116,53 @@ def ListPaths(action='rem'):
         return oc
 
 @route(PLEX_PATH + '/paths/add')
-def AddPath(query):
+def AddPath(query, silent=False):
 
-        if not path in Dict['paths']:
-                Dict['paths'].append(path)
+        if not query in Dict['paths']:
+                Dict['paths'].append(query)
                 Dict.Save()
-        return ErrorMessage("AddPath", path)
+        return None if silent else ErrorMessage("AddPath", query)
 
 @route(PLEX_PATH + '/paths/remove')
-def RemovePath(path):
+def RemovePath(query, silent=False):
 
-        if path in Dict['paths']:
-                Dict['paths'].remove(path)
+        if query in Dict['paths']:
+                Dict['paths'].remove(query)
                 Dict.Save()
-        return ErrorMessage("RemovePath", path)
+        return None if silent else ErrorMessage("RemovePath", query)
 ####################################################################################################    
 @route(PLEX_PATH + '/categories')
-def Categories(url):
+def Categories(path):
 
-        oc = ObjectContainer()
+        oc = ObjectContainer(title2=u'%s %s' % (path, L('Categories')))
 
         for cat in CATEGORIES:
                 oc.add(DirectoryObject(
-                        key   = Callback(Listing, url=url, category=cat),
-                        title = "%s/%s" % (url, cat)
+                        key   = Callback(Listing, path=path, category=cat),
+                        title = "%s/%s" % (path, cat)
                 ))
 
         return oc
 
 @route(PLEX_PATH + '/listing')
-def Listing(url, category='hot', after=None):
+def Listing(path, category='hot', after=None):
 
-        url = FixUrl(url)
-
-        oc = ObjectContainer(content=ContainerContent.Mixed)
+        oc = ObjectContainer(title2=u'%s/%s' % (path,category), content=ContainerContent.Mixed)
 
         params = {}
         if after:
                 params['after'] = after
 
         if category in SORTABLE:
-                DumbPrefs(PLEX_PATH, oc)
+                DumbPrefs(PLEX_PATH, oc,
+                        title = "Edit Prefs: time=%s, animated=%s" % (Prefs['time'], Prefs['animated']),
+                        thumb = R(ICONS['prefs'])
+                )
                 params['t']    = Prefs['time']
                 params['sort'] = category
 
-        data = JSON.ObjectFromURL(UrlEncode(REDDIT_API.format(endpoint="%s/%s" % (url, category)), params), cacheTime=CACHE_1MINUTE*5)
+        data = JSON.ObjectFromURL(url = UrlEncode(REDDIT_API.format(endpoint="%s/%s" % (path, category)), params),
+                                  cacheTime = CACHE_1MINUTE*5)
 
         for item in data['data']['children']:
 
@@ -156,7 +181,7 @@ def Listing(url, category='hot', after=None):
 
         if data['data']['after']:
                 oc.add(NextPageObject(
-                        key = Callback(Listing, url=url, category=category, after=data['data']['after'])
+                        key = Callback(Listing, path=path, category=category, after=data['data']['after'])
                 ))
 
         return oc
