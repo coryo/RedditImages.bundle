@@ -185,6 +185,10 @@ def Listing(path, category='hot', after=None):
                 item_thumb = item['data']['thumbnail']
                 item_url   = item['data']['url']
                 item_title = item['data']['title']
+                item_is_nsfw = bool(item['data']['over_18'])
+
+                if not bool(Prefs['nsfw']) and item_is_nsfw:
+                        continue
                 
                 obj = None
                 

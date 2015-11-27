@@ -6,6 +6,12 @@
                 "default":      "true",
         },
         {
+                "id":           "nsfw",
+                "label":        "Show NSFW",
+                "type":         "bool",
+                "default":      "true",
+        },        
+        {
                 "id":           "time",
                 "label":        "Show Links From (time)",
                 "type":         "enum",
