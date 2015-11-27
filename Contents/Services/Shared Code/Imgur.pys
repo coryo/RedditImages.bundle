@@ -1,4 +1,4 @@
-NAME = "Imgur"
+NAME = "imgur"
 API_BASE  = "https://api.imgur.com/3"
 CLIENT_ID = "c47fd9cf7e97928"
 
@@ -10,7 +10,7 @@ def ListObject(url, title, thumb, allow_animated=True):
 
         if IsAlbum(url):
                 return PhotoAlbumObject(
-                        key = Callback(GetAlbum, url=GetIdFromURL(url)),
+                        key = Callback(GetAlbum, id=GetIdFromURL(url)),
                         rating_key = url,
                         title = u'[ia] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
@@ -28,7 +28,7 @@ def ListObject(url, title, thumb, allow_animated=True):
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
 
-def GetAlbum(url):
+def GetAlbum(id):
         data = ApiRequest("/album/%s/images" % url)
 
         oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
@@ -39,6 +39,10 @@ def GetAlbum(url):
                         thumb = Resource.ContentsOfURLWithFallback(GetThumbFromURL(item['link']))
                 ))
         return oc
+
+ROUTES = {
+        "/%s/album/{id}" % NAME: GetAlbum
+}
 
 ####################################################################################################
 def ApiRequest(endpoint):

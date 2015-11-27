@@ -72,8 +72,12 @@ def Start():
                 Dict['paths'] = DEFAULT_PATHS
                 Dict.Save()
 
-        for name, api in APIS.iteritems():
-                Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)
+        # Connect any routes that the image hosts may need.
+        for api_name, api in APIS.iteritems():
+                try:
+                        for route_path, route_func in api.ROUTES.iteritems():
+                                Route.Connect(PLEX_PATH + route_path, route_func)
+                except: pass
 
 @handler(PLEX_PATH, NAME, thumb=ICONS['default'])
 def MainMenu():       
