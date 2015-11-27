@@ -1,3 +1,4 @@
+NAME = "Imgur"
 API_BASE  = "https://api.imgur.com/3"
 CLIENT_ID = "c47fd9cf7e97928"
 
@@ -26,7 +27,7 @@ def ListObject(url, title, thumb, allow_animated=True):
                 )
 
 def GetAlbum(url):
-        oc = ObjectContainer()
+        oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
         data = ApiRequest("/album/%s/images" % url)
         for item in data['data']:
                 oc.add(PhotoObject(

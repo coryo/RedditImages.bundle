@@ -1,3 +1,4 @@
+NAME = "Gfycat"
 API_BASE = "http://gfycat.com/cajax/get"
 THUMB_URL = "http://thumbs.gfycat.com/{id}-thumb360.jpg"
 
@@ -14,14 +15,14 @@ def ListObject(url, title, thumb, allow_animated=True):
                 )
         elif item_type == 'album':
                 return DirectoryObject(
-                        key = Callback(GetAlbumFromURL, url=url),
+                        key = Callback(GetAlbum, url=url),
                         title = u'[gfya] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(GetThumbFromAlbumURL(url))
                 )
 
-def GetAlbumFromURL(url):
+def GetAlbum(url):
         data = ApiRequest("PublicAlbumContents?username=%s&albumUrl=%s" % GetAlbumParamsFromURL(url))
-        oc = ObjectContainer()
+        oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
         for item in data['publishedGfys']:
                 oc.add(GetVideo(item))
         return oc
