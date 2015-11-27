@@ -163,16 +163,23 @@ def Listing(path, category='hot', after=None):
         oc = ObjectContainer(title2=u'%s/%s' % (Dict['paths'][path],category), content=ContainerContent.Mixed)
 
         params = {}
+
+        params['limit'] = Prefs['limit']
+
         if after:
                 params['after'] = after
 
         if category in SORTABLE:
-                DumbPrefs(PLEX_PATH, oc,
-                        title = "Edit Prefs: time=%s, animated=%s" % (Prefs['time'], Prefs['animated']),
-                        thumb = R(ICONS['prefs'])
-                )
+                ptitle = "Edit Prefs: limit=%s, time=%s, animated=%s" % (Prefs['limit'], Prefs['time'], Prefs['animated'])
                 params['t']    = Prefs['time']
                 params['sort'] = category
+        else:
+                ptitle = "Edit Prefs: limit=%s, animated=%s" % (Prefs['limit'], Prefs['animated'])
+
+        DumbPrefs(PLEX_PATH, oc,
+                title = ptitle,
+                thumb = R(ICONS['prefs'])
+        )
 
         data = JSON.ObjectFromURL(url = UrlEncode(REDDIT_API.format(endpoint="%s/%s" % (path, category)), params),
                                   cacheTime = CACHE_1MINUTE*5)

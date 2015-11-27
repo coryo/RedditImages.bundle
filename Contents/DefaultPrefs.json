@@ -11,5 +11,12 @@
                 "type":         "enum",
                 "values":       ["all", "year", "month", "day", "hour"],
                 "default":      "day",
+        },
+        {
+                "id":           "limit",
+                "label":        "Items per page",
+                "type":         "enum",
+                "values":       ["25", "50", "75", "100"],
+                "default":      "25",
         }
 ]
