@@ -5,4 +5,11 @@
                 "type":         "bool",
                 "default":      "true",
         },
+        {
+                "id":           "time",
+                "label":        "Show Links From (time)",
+                "type":         "enum",
+                "values":       ["all", "year", "month", "day", "hour"],
+                "default":      "day",
+        }
 ]

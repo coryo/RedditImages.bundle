@@ -1,5 +1,6 @@
 from DumbTools import DumbPrefs
 
+REDDIT_API = "https://www.reddit.com{endpoint}.json"
 APIS = {
         'imgur.com': SharedCodeService.Imgur,
         'gfycat.com': SharedCodeService.Gfycat,
@@ -10,9 +11,10 @@ PLEX_PATH  = '/photos/redditimages'
 
 ICON  = "icon-default.png"
 
-PATHS = [
-        "/r/pics/hot",
-]
+DEFAULT_PATHS = ["/r/pics", "/r/gifs"]
+
+CATEGORIES = ['hot', 'new', 'rising', 'controversial', 'top', 'gilded']
+SORTABLE   = ['top', 'controversial']
 
 ####################################################################################################      
 def ErrorMessage(error, message):
@@ -24,18 +26,25 @@ def ErrorMessage(error, message):
 def UrlEncode(url, params=None):
         return '%s?%s' % (url, '&'.join(["%s=%s" % (k,v) for k,v in params.iteritems()])) if params else url           
 
+def FixUrl(url):
+        if not url.startswith('/'):
+                url = '/'+url
+        if url.endswith('/'):
+                url = url[:-1]
+        return url
 ####################################################################################################      
 def Start():
 
         ObjectContainer.title1 = NAME
         HTTP.CacheTime  = CACHE_1DAY
         HTTP.User_Agent = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36'
-        if not 'paths' in Dict:
-                Dict['paths'] = PATHS
+
+        if not 'paths' in Dict or len(Dict['paths']) == 0:
+                Dict['paths'] = DEFAULT_PATHS
                 Dict.Save()
 
         for name, api in APIS.iteritems():
-                Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)            
+                Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)
 
 @handler(PLEX_PATH, NAME)
 def MainMenu():       
@@ -44,9 +53,18 @@ def MainMenu():
 
         for item in Dict['paths']:
                 oc.add(DirectoryObject(
-                        key = Callback(Listing, url="https://www.reddit.com/%s.json" % item),
+                        key   = Callback(Categories, url=item),
                         title = u'%s' % item,
                 ))
+
+        oc.add(InputDirectoryObject(
+                key   = Callback(AddPath),
+                title = u'%s' % L('Add a Path'),
+        ))
+        oc.add(DirectoryObject(
+                key   = Callback(ListPaths, action='rem'),
+                title = u'%s' % L('Remove a Path'),
+        ))
 
         # preferences
         if Client.Product in DumbPrefs.clients:
@@ -60,9 +78,53 @@ def MainMenu():
 
         return oc
 
-####################################################################################################      
+@route(PLEX_PATH + '/paths/list')
+def ListPaths(action='rem'):
+
+        oc = ObjectContainer()
+
+        for path in Dict['paths']:
+                do = DirectoryObject()
+                if action == 'rem':
+                        do.key   = Callback(RemovePath, path=path)
+                        do.title = "%s: %s" % (L('Remove'), path)
+                oc.add(do)
+
+        return oc
+
+@route(PLEX_PATH + '/paths/add')
+def AddPath(query):
+
+        if not path in Dict['paths']:
+                Dict['paths'].append(path)
+                Dict.Save()
+        return ErrorMessage("AddPath", path)
+
+@route(PLEX_PATH + '/paths/remove')
+def RemovePath(path):
+
+        if path in Dict['paths']:
+                Dict['paths'].remove(path)
+                Dict.Save()
+        return ErrorMessage("RemovePath", path)
+####################################################################################################    
+@route(PLEX_PATH + '/categories')
+def Categories(url):
+
+        oc = ObjectContainer()
+
+        for cat in CATEGORIES:
+                oc.add(DirectoryObject(
+                        key   = Callback(Listing, url=url, category=cat),
+                        title = "%s/%s" % (url, cat)
+                ))
+
+        return oc
+
 @route(PLEX_PATH + '/listing')
-def Listing(url, after=None):
+def Listing(url, category='hot', after=None):
+
+        url = FixUrl(url)
 
         oc = ObjectContainer(content=ContainerContent.Mixed)
 
@@ -70,13 +132,20 @@ def Listing(url, after=None):
         if after:
                 params['after'] = after
 
-        data = JSON.ObjectFromURL(UrlEncode(url, params), cacheTime=CACHE_1MINUTE)
+        if category in SORTABLE:
+                DumbPrefs(PLEX_PATH, oc)
+                params['t']    = Prefs['time']
+                params['sort'] = category
+
+        data = JSON.ObjectFromURL(UrlEncode(REDDIT_API.format(endpoint="%s/%s" % (url, category)), params), cacheTime=CACHE_1MINUTE*5)
 
         for item in data['data']['children']:
 
                 item_thumb = item['data']['thumbnail']
                 item_url   = item['data']['url']
                 item_title = item['data']['title']
+                
+                obj = None
                 
                 for api_name, api in APIS.iteritems():
                         if api_name in item_url:
@@ -87,7 +156,7 @@ def Listing(url, after=None):
 
         if data['data']['after']:
                 oc.add(NextPageObject(
-                        key = Callback(Listing, url=url, after=data['data']['after'])
+                        key = Callback(Listing, url=url, category=category, after=data['data']['after'])
                 ))
 
         return oc
