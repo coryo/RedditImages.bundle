@@ -4,27 +4,30 @@ def MetadataObjectForURL(url):
 
         if ImgurAPI.IsVid(url):
                 return VideoClipObject(
-                        title = "na",
+                        title   = "na",
                         summary = "na",
+                        thumb   = Resource.ContentsOfURLWithFallback(ImgurAPI.GetThumbFromURL(url)),
                 )
         else:
                 return PhotoObject(
-                        title = "na",
+                        title   = "na",
                         summary = "na",
+                        thumb   = Resource.ContentsOfURLWithFallback(ImgurAPI.GetThumbFromURL(url)),
                 )
 
 def MediaObjectsForURL(url):
 
+
         if ImgurAPI.IsVid(url):
                 return [
                         MediaObject(
-                                container = 'mp4',
+                                container   = 'mp4',
                                 video_codec = VideoCodec.H264,
-                                parts = [
-                                        PartObject(
-                                                key=Callback(GetVid, url = url)
-                                        )
-                                ]
+                                audio_codec = AudioCodec.AAC,
+                                optimized_for_streaming = True,
+                                audio_channels = 0,
+                                video_resolution = '420',
+                                parts = [PartObject(key=Callback(GetVid, url = url))]
                         )
                 ]
         else:
@@ -39,7 +42,8 @@ def GetImage(url):
         img_url = url if ImgurAPI.IsFile(url) else ImgurAPI.GetImageUrl(ImgurAPI.GetIdFromURL(url))
         return Redirect(img_url)
 
+@indirect
 def GetVid(url):
 
         vid_url = url if url.endswith('.mp4') else ImgurAPI.GetMP4Url(ImgurAPI.GetIdFromURL(url))
-        return Redirect(vid_url)
+        return IndirectResponse(VideoClipObject, key=vid_url)

@@ -11,6 +11,7 @@ def MetadataObjectForURL(url):
                 title    = "na",
                 summary  = "na",
                 duration = int((frames / float(framerate)) * 1000),
+                thumb    = Resource.ContentsOfURLWithFallback(GfycatAPI.GetThumb(data['gfyItem']))
         )
 
 def MediaObjectsForURL(url):
@@ -19,11 +20,16 @@ def MediaObjectsForURL(url):
                 MediaObject(
                         container   = 'mp4',
                         video_codec = VideoCodec.H264,
+                        audio_codec = AudioCodec.AAC,
+                        optimized_for_streaming = True,
+                        audio_channels = 0,
+                        video_resolution = '420', # arbitrary. iOS will attempt to transcode if it has no value.
                         parts = [PartObject(key=Callback(GetVid, url = url, ext='mp4'))]
                 )
         ]
 
+@indirect
 def GetVid(url, **kwargs):
 
         vid_url = url if url.endswith('.mp4') else GfycatAPI.GetMP4Url(GfycatAPI.GetIdFromURL(url))
-        return Redirect(vid_url)
+        return IndirectResponse(VideoClipObject, key=vid_url)
