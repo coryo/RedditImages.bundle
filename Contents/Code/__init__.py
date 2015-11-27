@@ -14,7 +14,11 @@ ICONS = {
         'prefs': 'icon-settings.png'
 }
 
-DEFAULT_PATHS = ["/r/pics", "/r/gifs"]
+# path:display_name
+DEFAULT_PATHS = {
+        "/r/pics": "/r/pics",
+        "/r/gifs": "/r/gifs"
+}
 
 CATEGORIES = ['hot', 'new', 'rising', 'controversial', 'top', 'gilded']
 SORTABLE   = ['top', 'controversial']
@@ -33,7 +37,7 @@ def UrlEncode(url, params=None):
 
 def FixPath(path):
 
-        path = path.split('reddit.com')[-1]
+        path = path.split('?')[0].split('reddit.com')[-1]
 
         if not path.startswith('/'):
                 path = '/'+path
@@ -43,14 +47,19 @@ def FixPath(path):
 
         return path
 
+@route(PLEX_PATH + '/import/{file}')
 def ImportPathsFromFile(file="paths.txt"):
 
         if Data.Exists(file):
+                start = len(Dict['paths'])
                 data = Data.Load(file)
                 for line in data.splitlines():
-                        AddPath(FixPath(line), silent=True)
-                Data.Save("%s.bk" % file, data)
-                Data.Remove(file)
+                        lineitems = line.split(',')
+                        name = lineitems[0].strip()
+                        path = lineitems[-1].strip()
+                        AddPath(FixPath(path), name=name if name != path else FixPath(path), silent=True)
+                return ErrorMessage("import", "imported %d paths" % (start - len(Dict['paths'])))
+        return ErrorMessage("import", "failed: file doesn't exist")
 
 ####################################################################################################      
 def Start():
@@ -66,18 +75,17 @@ def Start():
         for name, api in APIS.iteritems():
                 Route.Connect(PLEX_PATH + '/%s/album' % name, api.GetAlbum)
 
-        ImportPathsFromFile("paths.txt")
-
 @handler(PLEX_PATH, NAME, thumb=ICONS['default'])
 def MainMenu():       
 
         oc = ObjectContainer(title2=NAME, no_cache=True)
 
-        for item in Dict['paths']:
+        for path, path_name in Dict['paths'].iteritems():
                 oc.add(DirectoryObject(
-                        key   = Callback(Categories, path=item),
-                        title = u'%s' % item,
+                        key   = Callback(Categories, path=path),
+                        title = u'%s' % path_name,
                 ))
+        oc.objects.sort(key=lambda obj: obj.title)
 
         oc.add(InputDirectoryObject(
                 key   = Callback(AddPath),
@@ -86,6 +94,10 @@ def MainMenu():
         oc.add(DirectoryObject(
                 key   = Callback(ListPaths, action='rem'),
                 title = u'%s' % L('Remove a Path'),
+        ))
+        oc.add(DirectoryObject(
+                key   = Callback(ImportPathsFromFile, file='paths.txt'),
+                title = u'%s' % L('Import paths from paths.txt'),
         ))
 
         # preferences
@@ -101,25 +113,26 @@ def MainMenu():
 
         return oc
 
-@route(PLEX_PATH + '/paths/list')
+@route(PLEX_PATH + '/paths/list/{action}')
 def ListPaths(action='rem'):
 
         oc = ObjectContainer(title2=u'%s %s' % (L('Paths'), L(action)))
 
-        for path in Dict['paths']:
+        for path, name in Dict['paths'].iteritems():
                 do = DirectoryObject()
                 if action == 'rem':
-                        do.key   = Callback(RemovePath, path=path)
-                        do.title = "%s: %s" % (L('Remove'), path)
+                        do.key   = Callback(RemovePath, query=path)
+                        do.title = "%s: %s" % (L('Remove'), name)
                 oc.add(do)
+        oc.objects.sort(key=lambda obj: obj.title)
 
         return oc
 
 @route(PLEX_PATH + '/paths/add')
-def AddPath(query, silent=False):
+def AddPath(query, name=None, silent=False):
 
         if not query in Dict['paths']:
-                Dict['paths'].append(query)
+                Dict['paths'][query] = name if name else query
                 Dict.Save()
         return None if silent else ErrorMessage("AddPath", query)
 
@@ -127,19 +140,19 @@ def AddPath(query, silent=False):
 def RemovePath(query, silent=False):
 
         if query in Dict['paths']:
-                Dict['paths'].remove(query)
+                del Dict['paths'][query]
                 Dict.Save()
         return None if silent else ErrorMessage("RemovePath", query)
 ####################################################################################################    
 @route(PLEX_PATH + '/categories')
 def Categories(path):
 
-        oc = ObjectContainer(title2=u'%s %s' % (path, L('Categories')))
+        oc = ObjectContainer(title2=u'%s %s' % (Dict['paths'][path], L('Categories')))
 
         for cat in CATEGORIES:
                 oc.add(DirectoryObject(
                         key   = Callback(Listing, path=path, category=cat),
-                        title = "%s/%s" % (path, cat)
+                        title = "%s/%s" % (Dict['paths'][path], cat)
                 ))
 
         return oc
@@ -147,7 +160,7 @@ def Categories(path):
 @route(PLEX_PATH + '/listing')
 def Listing(path, category='hot', after=None):
 
-        oc = ObjectContainer(title2=u'%s/%s' % (path,category), content=ContainerContent.Mixed)
+        oc = ObjectContainer(title2=u'%s/%s' % (Dict['paths'][path],category), content=ContainerContent.Mixed)
 
         params = {}
         if after:
