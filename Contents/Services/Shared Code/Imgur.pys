@@ -29,9 +29,9 @@ def ListObject(url, title, thumb, allow_animated=True):
                 )
 
 def GetAlbum(id):
-        data = ApiRequest("/album/%s/images" % url)
+        data = ApiRequest("/album/%s/images" % id)
 
-        oc = ObjectContainer(title2="%s %s" % (NAME, GetIdFromURL(url)))
+        oc = ObjectContainer(title2="%s %s" % (NAME, id))
         for item in data['data']:
                 oc.add(PhotoObject(
                         url = item['link'],
@@ -58,7 +58,7 @@ def GetMP4Url(id):
         return data['data']['mp4']  
 
 def IsAlbum(url):
-        return '/a/' in url
+        return '/a/' in url or '/gallery/' in url
 
 def IsVid(url):
         return url.endswith('gif') or url.endswith('gifv') or url.endswith('webm')
