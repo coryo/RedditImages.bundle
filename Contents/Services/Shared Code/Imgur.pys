@@ -4,8 +4,6 @@ CLIENT_ID = "c47fd9cf7e97928"
 
 def ListObject(url, title, thumb, allow_animated=True):
 
-        if not allow_animated: return None
-
         thumb = GetThumbFromURL(url) if thumb == 'nsfw' else thumb
 
         if IsAlbum(url):
@@ -20,7 +18,7 @@ def ListObject(url, title, thumb, allow_animated=True):
                         url = url,
                         title = u'[iv] %s' % title,
                         thumb = Resource.ContentsOfURLWithFallback(thumb)
-                )
+                ) if allow_animated else None
         else:
                 return PhotoObject(
                         url = url,
