@@ -1,3 +1,4 @@
+from updater import Updater
 from DumbTools import DumbPrefs
 
 REDDIT_API = "https://www.reddit.com{endpoint}.json"
@@ -83,6 +84,7 @@ def Start():
 def MainMenu():       
 
         oc = ObjectContainer(title2=NAME, no_cache=True)
+        Updater(PLEX_PATH + '/updater', oc)
 
         for path, path_name in Dict['paths'].iteritems():
                 oc.add(DirectoryObject(
